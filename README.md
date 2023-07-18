@@ -1,1 +1,1 @@
-# petnfc-backend
+# FastAPI + SQLModel + Alembic

@@ -1,29 +1,75 @@
-from fastapi import Depends, FastAPI
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from fastapi import FastAPI, Request
+from pydantic import BaseModel
+from app.config.db import init_db
+from app.models import models
+from app.routers import pet_router, user_router
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from app.db import get_session, init_db
-from app.models import Song, SongCreate
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel
+
 
 app = FastAPI()
 
+class BaseResponseModel(BaseModel):
+    status_code: int
+    detail: str
+    
+    
+# @app.exception_handler(StarletteHTTPException)
+# async def http_exception_handler(request: Request, exc):
 
-@app.get("/ping")
+#     error_response = BaseResponseModel(
+#         status_code=404,
+#         detail="Not Found"
+#     )
+#     return JSONResponse(status_code=404, content=error_response.dict())
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc):
+    error_response = BaseResponseModel(
+        status_code=exc.status_code,
+        detail=exc.detail
+    )
+    return JSONResponse(status_code=exc.status_code, content=error_response.dict())
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    response_data = BaseResponseModel(
+        status_code=400,
+        detail="Invalid request"
+    )
+    return JSONResponse(status_code=400, content=response_data.dict())
+
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
+
+@app.get("/api/v1")
 async def pong():
-    return {"ping": "pong!"}
+    return {"message": "Hello World!"}
 
+app.include_router(user_router.router, prefix="/api/v1")
+app.include_router(pet_router.router, prefix="/api/v1")
 
-@app.get("/songs", response_model=list[Song])
-async def get_songs(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Song))
-    songs = result.scalars().all()
-    return [Song(name=song.name, artist=song.artist, year=song.year, id=song.id) for song in songs]
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://localhost:3004",
+]
 
-
-@app.post("/songs")
-async def add_song(song: SongCreate, session: AsyncSession = Depends(get_session)):
-    song = Song(name=song.name, artist=song.artist, year=song.year)
-    session.add(song)
-    await session.commit()
-    await session.refresh(song)
-    return song
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

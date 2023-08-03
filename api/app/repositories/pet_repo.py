@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from sqlmodel import select
 from sqlmodel import Session
 from datetime import datetime
-
+import re
 
 # Get all pet types
 async def get_all_pet_types(db: Session):
@@ -156,3 +156,20 @@ async def update_pet(db: Session, id: UUID, request: PetUpdate):
 
 async def generate_qr(db: Session):
     return await get_all_pets(db)
+
+async def execute_sql_from_dump(db: Session, sql_dump_file_path):
+    with open(sql_dump_file_path, 'r') as f:
+        sql_commands = f.read()
+
+    # Split SQL commands based on the semicolon delimiter
+    sql_commands_list = re.split(r';\s*', sql_commands)
+
+    try:
+        for sql_command in sql_commands_list:
+            if sql_command.strip():
+                await db.execute(sql_command)
+        await db.commit()
+        return {"status_code": status.HTTP_200_OK, "detail": "restored"} 
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail=str(e))

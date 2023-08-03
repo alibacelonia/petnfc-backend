@@ -51,21 +51,21 @@ class PetType(SQLModel, table=True):
 
     pets: Optional[List["Pet"]] = Relationship(back_populates='pet_type')
     
-class Pet(SQLModel, table=True, extend_existing=True):
+class Pet(SQLModel, table=True):
     __tablename__ = 'pets'
-    pet_id: Optional[int] = Field(default=None, primary_key=True)
+    pet_id: Optional[int] = Field(primary_key=True)
     unique_id: uuid.UUID = Field(default_factory=uuid.uuid4, unique=True, nullable=False)
     
-    microchip_id: Optional[str] = Field(unique=True, nullable=True, index=True)
-    name: Optional[str] = Field(nullable=True, index=True)
-    gender: Optional[str] = Field(nullable=True, index=True)
-    color: Optional[str] = Field(nullable=True, index=True)
-    pet_type_id: Optional[int] = Field(foreign_key='pet_type.type_id')
+    microchip_id: Optional[str] = Field(default=None, unique=True, nullable=True, index=True)
+    name: Optional[str] = Field(default=None, nullable=True, index=True)
+    gender: Optional[str] = Field(default=None, nullable=True, index=True)
+    color: Optional[str] = Field(default=None, nullable=True, index=True)
+    pet_type_id: Optional[int] = Field(default=None, foreign_key='pet_type.type_id', nullable=True)
     pet_type: Optional[PetType] = Relationship(back_populates='pets')
-    breed: Optional[str]
-    date_of_birth_month: Optional[int]
-    date_of_birth_year: Optional[int]
-    owner_id: Optional[int] = Field(foreign_key='users.user_id')
+    breed: Optional[str] = Field(default=None, nullable=True)
+    date_of_birth_month: Optional[int] = Field(default=None, nullable=True)
+    date_of_birth_year: Optional[int] = Field(default=None, nullable=True)
+    owner_id: Optional[int] = Field(default=None, foreign_key='users.user_id', nullable=True)
     owners: Optional[List[User]] = Relationship(back_populates='pets')
-    created_at: Optional[datetime] = Field(default=datetime.utcnow)
-    updated_at: Optional[datetime] = Field(default=func.now())
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow, nullable=True)
+    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow, nullable=True)

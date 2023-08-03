@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, File, UploadFile
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from app.config.db import get_session
@@ -9,6 +9,7 @@ from uuid import UUID
 import qrcode
 import os
 import csv
+
 
 
 router = APIRouter(
@@ -99,3 +100,25 @@ def add_pet(db: Session = Depends(get_session)):
         writer.writerows(qr_code_data)
 
     return {'message': 'QR codes generated successfully'}
+
+@router.post('/restore-dump')
+async def upload_sqldump(sql_dump: UploadFile = File(...), db: Session = Depends(get_session)):
+    # Create a temporary directory to save the uploaded file
+    temp_dir = "temp"
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_file_path = os.path.join(temp_dir, sql_dump.filename)
+
+    # Save the uploaded file
+    with open(temp_file_path, "wb") as f:
+        f.write(sql_dump.file.read())
+
+    try:
+        await pet_repo.execute_sql_from_dump(db, temp_file_path)
+    except Exception as e:
+        return {"error": f"Error executing SQL commands: {e}"}
+    finally:
+        # Clean up the temporary directory and file
+        os.remove(temp_file_path)
+        os.rmdir(temp_dir)
+
+    return {"message": "SQL dump uploaded and processed successfully!"}

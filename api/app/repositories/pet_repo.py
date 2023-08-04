@@ -133,7 +133,7 @@ async def register_pet(db: Session, request: PetRegisterModel):
             secondary_contact=request.contactPerson,
             secondary_contact_number=request.contactPersonNo,
             created_at=current_datetime,
-            role_id=1
+            role_id=2
         )
         
         new_user: User = await add_user(db, ruser)
@@ -237,3 +237,4 @@ async def execute_sql_from_dump(db: Session, sql_dump_file_path):
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail=str(e))
+    

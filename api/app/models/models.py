@@ -16,7 +16,7 @@ import uuid
     
 class Roles(SQLModel, table=True):
     __tablename__ = 'roles'
-    role_id: Optional[int] = Field(default=None, primary_key=True)
+    role_id: Optional[int] = Field(primary_key=True)
     role_name: str = Field(default=None, unique=True, nullable=False, index=True)
     
     users: Optional[List["User"]] = Relationship(back_populates='roles')
@@ -44,10 +44,10 @@ class User(SQLModel, table=True):
 
 class PetType(SQLModel, table=True):
     __tablename__ = 'pet_type'
-    type_id: Optional[int] = Field(default=None, primary_key=True)
+    type_id: Optional[int] = Field(primary_key=True)
     type: str = Field(unique=True)
-    created_at: Optional[datetime] = Field(default=datetime.utcnow)
-    updated_at: Optional[datetime] = Field(default=func.now())
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow, nullable=True)
+    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow, nullable=True)
 
     pets: Optional[List["Pet"]] = Relationship(back_populates='pet_type')
     

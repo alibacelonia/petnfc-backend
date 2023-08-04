@@ -1,8 +1,10 @@
 from os import abort
-from fastapi import HTTPException, status
+from typing import List, Optional
+from fastapi import Depends, HTTPException, status
 from pydantic import ValidationError
 from sqlalchemy import asc
 from sqlalchemy.orm import joinedload
+from app.config.db import get_session
 # from sqlalchemy.orm.session import Session
 from app.models.models import Pet, User, Roles
 from uuid import UUID

@@ -35,8 +35,8 @@ class User(SQLModel, table=True):
     secondary_contact: str
     secondary_contact_number: str
     is_verified: bool = Field(default=False, nullable=False)
-    created_at: Optional[datetime] = Field(default=datetime.utcnow)
-    updated_at: Optional[datetime] = Field(default=func.now())
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow, nullable=True)
+    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow, nullable=True)
     role_id: int = Field(nullable=False, foreign_key='roles.role_id')
 
     pets: Optional[List["Pet"]] = Relationship(back_populates='owners')

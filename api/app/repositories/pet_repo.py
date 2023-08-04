@@ -7,12 +7,14 @@ from sqlalchemy.orm import joinedload
 from app.models.models import Pet, User, PetType
 from uuid import UUID
 
-from app.schemas import PetBase, PetPublicDisplay, PetTypeBase, PetUpdate
+from app.repositories import user_repo
+
+from app.schemas import PetBase, PetPublicDisplay, PetTypeBase, PetUpdate, PetRegisterModel
 
 from sqlalchemy.exc import IntegrityError
 from fastapi.responses import JSONResponse
 
-from sqlmodel import select
+from sqlmodel import select, or_
 from sqlmodel import Session
 from datetime import datetime
 import re
@@ -96,6 +98,68 @@ async def add_pet(db: Session, request: PetBase):
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail=str(e))
+
+async def add_user(db: Session, user: User):
+    new_user = user
+    try:
+        db.add(new_user)
+        await db.commit()
+        await db.refresh(new_user)
+        return new_user
+    except IntegrityError as e:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Duplicate User")
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail=str(e))
+
+# Add new pet
+async def register_pet(db: Session, request: PetRegisterModel):
+    current_datetime = datetime.utcnow()  # Get the current UTC datetime
+    
+    stmt = select(User).where(or_(User.email == request.email, User.phone_number == request.phoneNo, User.username == request.username))
+    result = await db.exec(stmt)
+    user = result.first()
+    if user is None:
+        ruser = User(
+            username=request.username,
+            password=request.password,
+            email=request.email,
+            first_name=request.firstname,
+            last_name=request.lastname,
+            address=request.address,
+            post_code=request.postalCode,
+            phone_number=request.phoneNo,
+            secondary_contact=request.contactPerson,
+            secondary_contact_number=request.contactPersonNo,
+            created_at=current_datetime,
+            role_id=1
+        )
+        
+        new_user: User = await add_user(db, ruser)
+        
+        pstmt = select(Pet).where(Pet.unique_id == request.guid)
+        presult = await db.exec(pstmt)
+        pet : Pet = presult.first()
+        
+        pet.owner_id=new_user.user_id
+        pet.pet_type_id=request.petType
+        pet.name=request.petName
+        pet.microchip_id=request.petMicrochipNo
+        pet.gender=request.petGender
+        pet.breed=request.petBreed
+        pet.color=request.petColor
+        pet.date_of_birth_month=request.petBirthMonth
+        pet.date_of_birth_year=request.petBirthYear
+        
+        db.add(pet)
+        await db.commit()
+        await db.refresh(pet)
+        
+        return ({"status_code": status.HTTP_200_OK, "detail": "success", "data": PetPublicDisplay(pet=pet, owner=new_user)}) 
+        
+    else:
+        return {"status_code": status.HTTP_409_CONFLICT, "detail": "Owner details already registered."} 
 
 # Get pet by id
 async def get_pet_by_id(db: Session, pet_id: int):

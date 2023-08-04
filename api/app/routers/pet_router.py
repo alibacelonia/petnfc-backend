@@ -1,15 +1,14 @@
 from fastapi import APIRouter, Depends, status, File, UploadFile
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
 from app.config.db import get_session
-from app.schemas import PetBase, PetUpdate, PetDetails, PetPublicDisplay, PetTypeDetails, PetTypeBase
-from typing import List
+from app.schemas import PetBase, PetUpdate, PetDetails, PetPublicDisplay, PetTypeDetails, PetTypeBase, PetRegisterModel
+from typing import List, Optional
 from app.repositories import pet_repo
 from uuid import UUID
 import qrcode
 import os
 import csv
-
 
 
 router = APIRouter(
@@ -51,6 +50,14 @@ async def get_pet_by_unique_id(unique_id: UUID, db: Session = Depends(get_sessio
 @router.post('/', response_model=PetDetails)
 async def add_pet(request: PetBase, db: Session = Depends(get_session)):
     return await pet_repo.add_pet(db, request)
+
+
+# Register Pet and Owner
+@router.post('/register')
+async def add_pet(request: PetRegisterModel, db: Session = Depends(get_session)):
+    return await pet_repo.register_pet(db, request)
+    # return request
+
 
 # Update pet type by unique id
 @router.post('/update/{id}')

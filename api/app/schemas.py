@@ -60,7 +60,7 @@ class UserUpdatePassword(BaseModel):
 
 class User(UserBase):
     user_id: int
-    roles: List[Role]
+    # roles: List[Role]
 
     class Config:
         orm_mode = True
@@ -141,3 +141,26 @@ class PetDetails(PetBase):
     class Config:
         orm_mode = True
 
+class PetRegisterModel(BaseModel):
+    
+    firstname:  str = None
+    lastname:  str = None
+    email:  str = None
+    address:  str = None
+    postalCode:  str = None
+    phoneNo:  str = None
+    contactPerson:  str = None
+    contactPersonNo:  str = None
+
+    guid: UUID = None
+    petType: int = None
+    petGender:  str = None
+    petName:  str = None
+    petMicrochipNo: str = None
+    petBreed: str = None
+    petColor:  str = None
+    petBirthMonth: int = None
+    petBirthYear: int = None
+    
+    username: str = None
+    password: str = None

@@ -130,6 +130,7 @@ class PetUnique(BaseModel):
 class PetPublicDisplay(BaseModel):
     pet: PetBase = None
     owner: UserDisplayPublic = None
+    pet_type: PetTypeDetails = None
     
     class Config:
         orm_mode = True

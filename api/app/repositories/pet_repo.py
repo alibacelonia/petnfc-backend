@@ -170,7 +170,7 @@ async def get_pet_by_id(db: Session, pet_id: int):
 
 # Get pet by unique id
 async def get_pet_by_unique_id(db: Session, unique_id: UUID):
-    stmt = select(Pet, User).join(User, isouter=True).where(Pet.unique_id == unique_id)
+    stmt = select(Pet, PetType, User).join(PetType, isouter=True).join(User, isouter=True).where(Pet.unique_id == unique_id)
     result = await db.exec(stmt)
     pet = result.fetchone()
     if pet is None:
@@ -179,13 +179,14 @@ async def get_pet_by_unique_id(db: Session, unique_id: UUID):
     # Convert the SQLAlchemy result to a dictionary
     pet_data = dict(pet.Pet)
     owner_data = dict(pet.User) if pet.User else None
+    petType = dict(pet.PetType) if pet.PetType else None
 
     # return {
     #     "status_code": status.HTTP_200_OK,
     #     "detail": "success",
     #     "data": {"pet": pet_data, "owner": owner_data}
     # }
-    return ({"status_code": status.HTTP_200_OK, "detail": "success", "data": PetPublicDisplay(pet=pet_data, owner=owner_data)}) 
+    return ({"status_code": status.HTTP_200_OK, "detail": "success", "data": PetPublicDisplay(pet=pet_data, owner=owner_data, pet_type=petType)}) 
 
 
 # Update pet

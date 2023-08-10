@@ -1,3 +1,4 @@
+aiofiles
 alembic
 asyncpg
 fastapi
@@ -15,3 +16,5 @@ jinja2
 psycopg2-binary
 qrcode
 greenlet
+python-multipart
+cachetools

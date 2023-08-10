@@ -20,7 +20,11 @@ async def init_db():
     session = await get_session()
     
     items = [Roles(role_name="admin"), Roles(role_name="pet-owner"), Roles(role_name="pet-walker")]
-    pet_types = [PetType(type="Dog"),PetType(type="Cat"),PetType(type="Bird"), PetType(type="Rabbit")]
+    pet_types = [
+                    PetType(type="Dog"),
+                    PetType(type="Cat"),
+                    # PetType(type="Bird"), PetType(type="Rabbit")
+                ]
     try:
         session.add_all(items)
         await session.commit()

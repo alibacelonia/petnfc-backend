@@ -29,6 +29,10 @@ class User(SQLModel, table=True):
     email: str = Field(default=None, unique=True, nullable=False)
     first_name: str
     last_name: str
+    state: str
+    state_code: str
+    city: str
+    city_id: str
     address: str
     post_code: str
     phone_number: str
@@ -51,6 +55,16 @@ class PetType(SQLModel, table=True):
 
     pets: Optional[List["Pet"]] = Relationship(back_populates='pet_type')
     
+class PetImages(SQLModel, table=True):
+    __tablename__ = 'pet_images'
+    image_id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+    name: str
+    pet_id: int = Field(default=None, foreign_key='pets.pet_id')
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow, nullable=True)
+    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow, nullable=True)
+
+    pet_owner: Optional['Pet'] = Relationship(back_populates='pet_images')
+    
 class Pet(SQLModel, table=True):
     __tablename__ = 'pets'
     pet_id: Optional[int] = Field(primary_key=True)
@@ -58,14 +72,21 @@ class Pet(SQLModel, table=True):
     
     microchip_id: Optional[str] = Field(default=None, unique=True, nullable=True, index=True)
     name: Optional[str] = Field(default=None, nullable=True, index=True)
-    gender: Optional[str] = Field(default=None, nullable=True, index=True)
-    color: Optional[str] = Field(default=None, nullable=True, index=True)
+    description: Optional[str] = Field(default=None, nullable=True)
+    behavior: Optional[str] = Field(default=None, nullable=True)
+    gender: Optional[str] = Field(default=None, nullable=True)
+    color: Optional[str] = Field(default=None, nullable=True)
     pet_type_id: Optional[int] = Field(default=None, foreign_key='pet_type.type_id', nullable=True)
+    main_picture: Optional[str] = Field(default=None, nullable=True)
     pet_type: Optional[PetType] = Relationship(back_populates='pets')
     breed: Optional[str] = Field(default=None, nullable=True)
     date_of_birth_month: Optional[int] = Field(default=None, nullable=True)
     date_of_birth_year: Optional[int] = Field(default=None, nullable=True)
+    
     owner_id: Optional[int] = Field(default=None, foreign_key='users.user_id', nullable=True)
     owners: Optional[List[User]] = Relationship(back_populates='pets')
+    
+    pet_images: Optional[List['PetImages']] = Relationship(back_populates='pet_owner')
+    
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow, nullable=True)
     updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow, nullable=True)

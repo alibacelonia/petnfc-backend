@@ -1,4 +1,5 @@
 from datetime import datetime
+from fastapi import UploadFile
 from pydantic import BaseModel
 from typing import List, Optional
 from uuid import UUID
@@ -25,6 +26,8 @@ class UserBase(BaseModel):
     email: str
     first_name: str
     last_name: str
+    city:str
+    state:str
     address: str
     post_code: str
     phone_number: str
@@ -40,6 +43,8 @@ class UserDisplayPublic(BaseModel):
     email: str
     first_name: str
     last_name: str
+    city:str
+    state:str
     address: str
     post_code: str
     phone_number: str
@@ -87,9 +92,13 @@ class PetTypeDetails(PetTypeBase):
         orm_mode = True
         
 class PetBase(BaseModel):
+    unique_id: UUID = None
     pet_type_id: int = None
     name: str = None
     microchip_id: str = None
+    description: str = None
+    behavior: str = None
+    main_picture: str = None
     gender: str = None
     breed: str = None
     color: str = None
@@ -147,6 +156,10 @@ class PetRegisterModel(BaseModel):
     firstname:  str = None
     lastname:  str = None
     email:  str = None
+    state:  str = None
+    state_code:  str = None
+    city:  str = None
+    city_id:  str = None
     address:  str = None
     postalCode:  str = None
     phoneNo:  str = None
@@ -165,3 +178,71 @@ class PetRegisterModel(BaseModel):
     
     username: str = None
     password: str = None
+    
+class Timezone(BaseModel):
+    zoneName: str
+    gmtOffset: int
+    gmtOffsetName: str
+    abbreviation: str
+    tzName: str
+
+class Translations(BaseModel):
+    kr: str
+    pt_BR: str
+    pt: str
+    nl: str
+    hr: str
+    fa: str
+    de: str
+    es: str
+    fr: str
+    ja: str
+    it: str
+    cn: str
+    tr: str
+
+class Country(BaseModel):
+    id: int
+    name: str
+    iso3: str
+    iso2: str
+    numeric_code: str
+    phone_code: str
+    capital: str
+    currency: str
+    currency_name: str
+    currency_symbol: str
+    tld: str
+    native: str
+    region: str
+    subregion: str
+    timezones: List[Timezone]
+    translations: Translations
+    latitude: str
+    longitude: str
+    emoji: str
+    emojiU: str
+    
+class State(BaseModel):
+    id: int
+    name: str
+    country_id: int
+    country_code: str
+    country_name: str
+    state_code: str
+    type: str = None
+    latitude: str
+    longitude: str
+
+class City(BaseModel):
+    id: int
+    name: str
+    state_id: int
+    state_code: str
+    state_name: str
+    country_id: int
+    country_code: str
+    country_name: str
+    latitude: str
+    longitude: str
+    wikiDataId: str

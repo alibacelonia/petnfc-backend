@@ -1,5 +1,7 @@
 from os import abort
-from fastapi import HTTPException, status
+import os
+import shutil
+from fastapi import HTTPException, UploadFile, status
 from pydantic import ValidationError
 from sqlalchemy import asc
 from sqlalchemy.orm import joinedload
@@ -19,6 +21,8 @@ from sqlmodel import Session
 from datetime import datetime
 import re
 
+from pathlib import Path
+USERDATA_DIR = os.path.join("app", "userdata")
 # Get all pet types
 async def get_all_pet_types(db: Session):
     # return db.query(PetType).order_by(asc(PetType.type_id)).all()
@@ -114,52 +118,79 @@ async def add_user(db: Session, user: User):
         raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail=str(e))
 
 # Add new pet
-async def register_pet(db: Session, request: PetRegisterModel):
+async def register_pet(db: Session, file: UploadFile, request: PetRegisterModel):
     current_datetime = datetime.utcnow()  # Get the current UTC datetime
+        
+    try:
+        stmt = select(User).where(or_(User.email == request.email, User.phone_number == request.phoneNo, User.username == request.username))
+        result = await db.exec(stmt)
+        user = result.first()
+        
+        if user is None:
+            ruser = User(
+                username=request.username,
+                password=request.password,
+                email=request.email,
+                first_name=request.firstname,
+                last_name=request.lastname,
+                city=request.city,
+                city_id=request.city_id,
+                state=request.state,
+                state_code=request.state_code,
+                address=request.address,
+                post_code=request.postalCode,
+                phone_number=request.phoneNo,
+                secondary_contact=request.contactPerson,
+                secondary_contact_number=request.contactPersonNo,
+                created_at=current_datetime,
+                role_id=2
+            )
+            
+            new_user: User = await add_user(db, ruser)
+            
+            pstmt = select(Pet).where(Pet.unique_id == request.guid)
+            presult = await db.exec(pstmt)
+            pet : Pet = presult.first()
+            
+            pet.owner_id=new_user.user_id
+            pet.pet_type_id=request.petType
+            pet.name=request.petName
+            pet.microchip_id=request.petMicrochipNo
+            pet.main_picture=file.filename
+            pet.gender=request.petGender
+            pet.breed=request.petBreed
+            pet.color=request.petColor
+            pet.date_of_birth_month=request.petBirthMonth
+            pet.date_of_birth_year=request.petBirthYear
+            
+            db.add(pet)
+            await db.commit()
+            await db.refresh(pet)
+            
+            
+            # Pet profile picture path
+            pet_profile_path = os.path.join(USERDATA_DIR, str(new_user.user_id), str(request.guid), "profile") 
+            
+            # Create the path 
+            Path(pet_profile_path).mkdir(parents=True, exist_ok=True)
+            
+            # Read and copy the file
+            with open(os.path.join(pet_profile_path, file.filename), 'w+b') as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            
+            # pet_type = await db.get(PetType, request.petType)
+            
+            return{
+                "status_code": status.HTTP_200_OK, 
+                "detail": "success", 
+                # "data": PetPublicDisplay(pet=pet, owner=new_user, pet_type=pet_type)
+            }
+            
+        else:
+            return {"status_code": status.HTTP_409_CONFLICT, "detail": "Owner details already registered."} 
+    except Exception as e:
+            return {"status_code": status.HTTP_500_INTERNAL_SERVER_ERROR, "detail": "Internal Server Error."} 
     
-    stmt = select(User).where(or_(User.email == request.email, User.phone_number == request.phoneNo, User.username == request.username))
-    result = await db.exec(stmt)
-    user = result.first()
-    if user is None:
-        ruser = User(
-            username=request.username,
-            password=request.password,
-            email=request.email,
-            first_name=request.firstname,
-            last_name=request.lastname,
-            address=request.address,
-            post_code=request.postalCode,
-            phone_number=request.phoneNo,
-            secondary_contact=request.contactPerson,
-            secondary_contact_number=request.contactPersonNo,
-            created_at=current_datetime,
-            role_id=2
-        )
-        
-        new_user: User = await add_user(db, ruser)
-        
-        pstmt = select(Pet).where(Pet.unique_id == request.guid)
-        presult = await db.exec(pstmt)
-        pet : Pet = presult.first()
-        
-        pet.owner_id=new_user.user_id
-        pet.pet_type_id=request.petType
-        pet.name=request.petName
-        pet.microchip_id=request.petMicrochipNo
-        pet.gender=request.petGender
-        pet.breed=request.petBreed
-        pet.color=request.petColor
-        pet.date_of_birth_month=request.petBirthMonth
-        pet.date_of_birth_year=request.petBirthYear
-        
-        db.add(pet)
-        await db.commit()
-        await db.refresh(pet)
-        
-        return ({"status_code": status.HTTP_200_OK, "detail": "success", "data": PetPublicDisplay(pet=pet, owner=new_user)}) 
-        
-    else:
-        return {"status_code": status.HTTP_409_CONFLICT, "detail": "Owner details already registered."} 
 
 # Get pet by id
 async def get_pet_by_id(db: Session, pet_id: int):

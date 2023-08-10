@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from app.config.db import init_db
 from app.models import models
-from app.routers import pet_router, user_router
+from app.routers import pet_router, user_router, country_router, state_router, city_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -10,8 +10,20 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 
+from fastapi.staticfiles import StaticFiles
+from aiofiles import open as async_open
+import os, json
 
 app = FastAPI()
+
+
+app.mount("/files", StaticFiles(directory="app/files"), name="files")
+app.mount("/userdata", StaticFiles(directory="app/userdata"), name="userdata")
+
+async def load_json_file(file_path):
+    async with async_open(file_path, mode="r") as file:
+        data = await file.read()
+        return json.loads(data)
 
 class BaseResponseModel(BaseModel):
     status_code: int
@@ -53,12 +65,13 @@ async def pong():
 
 app.include_router(user_router.router, prefix="/api/v1")
 app.include_router(pet_router.router, prefix="/api/v1")
+app.include_router(country_router.router, prefix="/api/v1")
+app.include_router(state_router.router, prefix="/api/v1")
+app.include_router(city_router.router, prefix="/api/v1")
 
 origins = [
-    "http://localhost.tiangolo.com",
-    "https://localhost.tiangolo.com",
     "http://localhost",
-    "http://localhost:8080",
+    "http://localhost:8000",
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",

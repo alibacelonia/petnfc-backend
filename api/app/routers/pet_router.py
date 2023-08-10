@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, status, File, UploadFile
+from fastapi import APIRouter, Depends, Form, status, File, UploadFile
+from fastapi.datastructures import FormData
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
 from app.config.db import get_session
 from app.schemas import PetBase, PetUpdate, PetDetails, PetPublicDisplay, PetTypeDetails, PetTypeBase, PetRegisterModel
-from typing import List, Optional
+from typing import Any, List, Optional
 from app.repositories import pet_repo
 from uuid import UUID
 import qrcode
@@ -51,12 +53,87 @@ async def get_pet_by_unique_id(unique_id: UUID, db: Session = Depends(get_sessio
 async def add_pet(request: PetBase, db: Session = Depends(get_session)):
     return await pet_repo.add_pet(db, request)
 
-
 # Register Pet and Owner
 @router.post('/register')
-async def add_pet(request: PetRegisterModel, db: Session = Depends(get_session)):
-    return await pet_repo.register_pet(db, request)
-    # return request
+async def add_pet(
+    guid: str = Form(...),
+    firstname: str = Form(...),
+    lastname: str = Form(...),
+    email: str = Form(...),
+    state: str = Form(...),
+    state_code: str = Form(...),
+    city: str = Form(...),
+    city_id: str = Form(...),
+    address: str = Form(...),
+    postalCode: str = Form(...),
+    phoneNo: str = Form(...),
+    contactPerson: str = Form(...),
+    contactPersonNo: str = Form(...),
+        
+    petType: str = Form(...),
+    petGender: str = Form(...),
+    petName: str = Form(...),
+    petMicrochipNo: str = Form(...),
+    petBreed: str = Form(...),
+    petColor: str = Form(...),
+    petBirthMonth: str = Form(...),
+    petBirthYear: str = Form(...),
+        
+    username: str = Form(...),
+    password: str = Form(...),
+    file: UploadFile = File(...), 
+    db: Session = Depends(get_session)):
+    
+    # form_data_dict = {
+    #     "guid": guid,
+    #     "firstname": firstname,
+    #     "lastname": lastname,
+    #     "email": email,    
+    #     "state": state,
+    #     "state_code": state_code,
+    #     "city": city,
+    #     "city_id": city_id,
+    #     "address": address,
+    #     "postalCode": postalCode,
+    #     "phoneNo": phoneNo,
+    #     "contactPerson": contactPerson,
+    #     "contactPersonNo": contactPersonNo,
+    #     "petType": petType,
+    #     "petGender": petGender,
+    #     "petName": petName,
+    #     "petMicrochipNo": petMicrochipNo,
+    #     "petBreed": petBreed,
+    #     "petColor": petColor,
+    #     "petBirthMonth": petBirthMonth,
+    #     "petBirthYear": petBirthYear,
+    #     "username": username,
+    #     "password": password,
+    # }   
+    form_data = PetRegisterModel(
+        guid=guid,
+        firstname=firstname,
+        lastname=lastname,
+        email=email,    
+        state=state,
+        state_code=state_code,
+        city=city,
+        city_id=city_id,
+        address=address,
+        postalCode=postalCode,
+        phoneNo=phoneNo,
+        contactPerson=contactPerson,
+        contactPersonNo=contactPersonNo,
+        petType=petType,
+        petGender=petGender,
+        petName=petName,
+        petMicrochipNo=petMicrochipNo,
+        petBreed=petBreed,
+        petColor=petColor,
+        petBirthMonth=petBirthMonth,
+        petBirthYear=petBirthYear,
+        username=username,
+        password=password)
+    return await pet_repo.register_pet(db, file, form_data)
 
 
 # Update pet type by unique id

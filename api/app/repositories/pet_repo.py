@@ -7,7 +7,7 @@ from sqlalchemy import asc
 from sqlalchemy.orm import joinedload
 # from sqlalchemy.orm.session import Session
 from app.models.models import Pet, User, PetType
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.repositories import user_repo
 
@@ -22,6 +22,10 @@ from datetime import datetime
 import re
 
 from pathlib import Path
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 USERDATA_DIR = os.path.join("app", "userdata")
 # Get all pet types
 async def get_all_pet_types(db: Session):
@@ -70,11 +74,18 @@ async def update_pet_type(db: Session, id: int, request: PetTypeBase):
     return ({"status_code": status.HTTP_200_OK, "detail": "Updated"}) 
 
 # Get all pets
-async def get_all_pets(db: Session, response_model=list[Pet]):
+async def get_all_pets(db: Session):
     # return db.query(Pet).order_by(asc(Pet.pet_id)).all()
     result = await db.execute(select(Pet))
-    songs = result.scalars().all()
-    return songs
+    pets = result.scalars().all()
+    return pets
+
+# Get all pets by owner_id
+async def get_all_pets_by_owner_id(id:int, db: Session):
+    # return db.query(Pet).order_by(asc(Pet.pet_id)).all()
+    result = await db.execute(select(Pet).where(Pet.owner_id == id))
+    pets = result.scalars().all()
+    return pets
 
 # Add new pet
 async def add_pet(db: Session, request: PetBase):
@@ -96,12 +107,12 @@ async def add_pet(db: Session, request: PetBase):
         await db.commit()
         await db.refresh(new_pet)
         return new_pet
-    except IntegrityError as e:
-        await db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Duplicate Pet")
+    # except IntegrityError as e:
+    #     await db.rollback()
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Duplicate Pet")
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 async def add_user(db: Session, user: User):
     new_user = user
@@ -120,7 +131,7 @@ async def add_user(db: Session, user: User):
 # Add new pet
 async def register_pet(db: Session, file: UploadFile, request: PetRegisterModel):
     current_datetime = datetime.utcnow()  # Get the current UTC datetime
-        
+    unique_filename = cleanstr(file.filename)
     try:
         stmt = select(User).where(or_(User.email == request.email, User.phone_number == request.phoneNo, User.username == request.username))
         result = await db.exec(stmt)
@@ -129,7 +140,7 @@ async def register_pet(db: Session, file: UploadFile, request: PetRegisterModel)
         if user is None:
             ruser = User(
                 username=request.username,
-                password=request.password,
+                password=pwd_context.hash(request.password),
                 email=request.email,
                 first_name=request.firstname,
                 last_name=request.lastname,
@@ -156,7 +167,7 @@ async def register_pet(db: Session, file: UploadFile, request: PetRegisterModel)
             pet.pet_type_id=request.petType
             pet.name=request.petName
             pet.microchip_id=request.petMicrochipNo
-            pet.main_picture=file.filename
+            pet.main_picture=unique_filename
             pet.gender=request.petGender
             pet.breed=request.petBreed
             pet.color=request.petColor
@@ -175,7 +186,7 @@ async def register_pet(db: Session, file: UploadFile, request: PetRegisterModel)
             Path(pet_profile_path).mkdir(parents=True, exist_ok=True)
             
             # Read and copy the file
-            with open(os.path.join(pet_profile_path, file.filename), 'w+b') as buffer:
+            with open(os.path.join(pet_profile_path, unique_filename), 'w+b') as buffer:
                 shutil.copyfileobj(file.file, buffer)
             
             # pet_type = await db.get(PetType, request.petType)
@@ -221,16 +232,35 @@ async def get_pet_by_unique_id(db: Session, unique_id: UUID):
 
 
 # Update pet
-async def update_pet(db: Session, id: UUID, request: PetUpdate):
+async def update_pet(unique_id, owner_id, request: PetUpdate, file: UploadFile, db: Session):
     current_datetime = datetime.utcnow()
     
-    stmt = select(Pet).where(Pet.unique_id == id)
+    stmt = select(Pet).where(Pet.unique_id == unique_id)
     result = await db.exec(stmt)
     pet: Pet = result.first()
     
     if pet is None:
         return ({"status_code": status.HTTP_404_NOT_FOUND, "detail": "No record found"}) 
     
+    if file:
+        unique_filename = cleanstr(file.filename)
+        pet.main_picture = unique_filename
+        
+        # Pet profile picture path
+        pet_profile_path = os.path.join(USERDATA_DIR, str(owner_id), str(unique_id), "profile") 
+        
+        # Create the path 
+        Path(pet_profile_path).mkdir(parents=True, exist_ok=True)
+        
+        # Read and copy the file
+        with open(os.path.join(pet_profile_path, unique_filename), 'w+b') as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+    pet.updated_at=current_datetime
+    pet.microchip_id = request.microchip_id
+    pet.weight = request.weight
+    pet.behavior = request.behavior
+    pet.description = request.description
     pet.pet_type_id=request.pet_type_id
     pet.name=request.name
     pet.gender=request.gender
@@ -238,7 +268,7 @@ async def update_pet(db: Session, id: UUID, request: PetUpdate):
     pet.color=request.color
     pet.date_of_birth_month=request.date_of_birth_month
     pet.date_of_birth_year=request.date_of_birth_year
-    pet.updated_at=current_datetime
+    
     
     # return pet
     try:
@@ -270,3 +300,17 @@ async def execute_sql_from_dump(db: Session, sql_dump_file_path):
         await db.rollback()
         raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail=str(e))
     
+    
+def cleanstr(filename):
+    # Remove special characters and whitespaces and convert to lowercase
+    filename = ''.join(c for c in filename if c.isalnum() or c in ',._').lower()
+    
+    # Remove file extension and get length
+    name, ext = os.path.splitext(filename)
+    name_length = len(name)
+    
+    # Check conditions and return result
+    if name_length <= 16:
+        return filename
+    elif name_length > 16:
+        return name[:16] + ext

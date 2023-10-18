@@ -1,16 +1,8 @@
 from fastapi import APIRouter, Depends, Form, status, File, UploadFile
-from fastapi.datastructures import FormData
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ValidationError
-from sqlalchemy.orm import Session
 from app.config.db import get_session
 from app.schemas import Timezone, Translations, Country, State, City
 from typing import Any, List, Optional
 from app.repositories import city_repo
-from fastapi.staticfiles import StaticFiles
-import json
-import httpx
-import os
 
 # from cachetools import TTLCache
 

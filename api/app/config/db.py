@@ -8,6 +8,9 @@ from sqlalchemy.orm import sessionmaker
 from app.models.models import PetType, Roles
 
 
+SECRET_KEY = "lemoncode21"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/foo"
 # DATABASE_URL = os.environ.get("DATABASE_URL")
 

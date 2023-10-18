@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from app.config.db import init_db
 from app.models import models
-from app.routers import pet_router, user_router, country_router, state_router, city_router
+from app.routers import pet_router, user_router, country_router, state_router, city_router, auth_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -17,7 +17,7 @@ import os, json
 app = FastAPI()
 
 
-app.mount("/files", StaticFiles(directory="app/files"), name="files")
+# app.mount("/files", StaticFiles(directory="app/files"), name="files")
 app.mount("/userdata", StaticFiles(directory="app/userdata"), name="userdata")
 
 async def load_json_file(file_path):
@@ -63,6 +63,7 @@ async def on_startup():
 async def pong():
     return {"message": "Hello World!"}
 
+app.include_router(auth_router.router, prefix="/api/v1")
 app.include_router(user_router.router, prefix="/api/v1")
 app.include_router(pet_router.router, prefix="/api/v1")
 app.include_router(country_router.router, prefix="/api/v1")

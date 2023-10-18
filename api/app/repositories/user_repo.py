@@ -9,7 +9,7 @@ from app.config.db import get_session
 from app.models.models import Pet, User, Roles
 from uuid import UUID
 
-from app.schemas import RoleBase, Role, RoleCreate, RoleUpdate, UserBase, UserCreate
+from app.schemas import RoleBase, Role, RoleCreate, RoleUpdate, UserBase, UserCreate, UserUpdateDetails
 
 from sqlalchemy.exc import IntegrityError
 from fastapi.responses import JSONResponse
@@ -18,6 +18,11 @@ from sqlmodel import select
 from sqlmodel import Session
 from datetime import datetime
 
+dbconn = get_session
+
+async def find_by_username(username: str, db: Session):
+    query = select(User).where(User.username == username)
+    return (await db.execute(query)).scalar_one_or_none()
 
 # Get all pet types
 async def get_all_user_roles(db: Session):
@@ -103,19 +108,33 @@ async def get_user_by_id(db: Session, id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
 
+
 # Update User
-# async def update_user(db: Session, id: UUID, request: UserBase):
-#     pet = db.query(User).filter(User.user_id == id)
-#     if not pet.first():
-#         return ({"status_code": status.HTTP_404_NOT_FOUND, "detail": "No record found"}) 
-#     pet.update({
-#         Pet.name: request.name,
-#         Pet.gender: request.gender,
-#         Pet.pet_type_id: request.pet_type_id,
-#         Pet.breed: request.breed,
-#         Pet.date_of_birth_month: request.date_of_birth_month,
-#         Pet.date_of_birth_year: request.date_of_birth_year,
-#         Pet.owner_id: request.owner_id
-#     })
-#     db.commit()
-#     return ({"status_code": status.HTTP_200_OK, "detail": "success", "data": PetPublicDisplay(pet=pet, owner=pet.owners)}) 
+async def update_user(username: str, request: UserUpdateDetails, db: Session):
+    stmt = select(User).where(User.username == username)
+    result = await db.exec(stmt)
+    user: User = result.first()
+    
+    if user is None:
+        return ({"status_code": status.HTTP_404_NOT_FOUND, "detail": "No record found"}) 
+    
+    user.first_name = request.first_name
+    user.last_name = request.last_name
+    user.phone_number = request.phone_number
+    user.state = request.state
+    user.state_code = request.state_code
+    user.city = request.city
+    user.city_id = request.city_id
+    user.address = request.street_address
+    user.post_code = request.post_code
+    user.secondary_contact = request.secondary_contact
+    user.secondary_contact_number = request.secondary_contact_number
+    
+    try:
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        return ({"status_code": status.HTTP_200_OK, "detail": "success", "data": user}) 
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail=str(e)) 

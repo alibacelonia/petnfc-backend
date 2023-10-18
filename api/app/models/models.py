@@ -68,12 +68,13 @@ class PetImages(SQLModel, table=True):
 class Pet(SQLModel, table=True):
     __tablename__ = 'pets'
     pet_id: Optional[int] = Field(primary_key=True)
-    unique_id: uuid.UUID = Field(default_factory=uuid.uuid4, unique=True, nullable=False)
+    unique_id: uuid.UUID = Field(default_factory=uuid.uuid4, unique=False, nullable=False)
     
-    microchip_id: Optional[str] = Field(default=None, unique=True, nullable=True, index=True)
+    microchip_id: Optional[str] = Field(default=None, unique=False, nullable=True, index=True)
     name: Optional[str] = Field(default=None, nullable=True, index=True)
     description: Optional[str] = Field(default=None, nullable=True)
     behavior: Optional[str] = Field(default=None, nullable=True)
+    weight: Optional[float] = Field(default=None, nullable=True)
     gender: Optional[str] = Field(default=None, nullable=True)
     color: Optional[str] = Field(default=None, nullable=True)
     pet_type_id: Optional[int] = Field(default=None, foreign_key='pet_type.type_id', nullable=True)

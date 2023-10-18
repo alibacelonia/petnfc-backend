@@ -18,3 +18,4 @@ qrcode
 greenlet
 python-multipart
 cachetools
+pillow

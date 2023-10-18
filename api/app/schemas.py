@@ -57,8 +57,18 @@ class UserDisplayPublic(BaseModel):
 class UserCreate(UserBase):
     created_at: Optional[datetime] = datetime.utcnow
 
-class UserUpdateDetails(UserBase):
-    pass
+class UserUpdateDetails(BaseModel):
+    first_name: str
+    last_name: str
+    phone_number: str
+    city_id:str
+    city:str
+    state_code:str
+    state:str
+    street_address: str
+    post_code: str
+    secondary_contact: str
+    secondary_contact_number: str
 
 class UserUpdatePassword(BaseModel):
     password: str
@@ -100,6 +110,7 @@ class PetBase(BaseModel):
     behavior: str = None
     main_picture: str = None
     gender: str = None
+    weight: float = None
     breed: str = None
     color: str = None
     date_of_birth_month: int = None
@@ -115,7 +126,12 @@ class PetCreate(PetBase):
 class PetUpdate(BaseModel):
     pet_type_id: int = None
     name: str = None
+    microchip_id: str = None
+    description: str = None
+    behavior: str = None
+    main_picture: str = None
     gender: str = None
+    weight: float = None
     breed: str = None
     color: str = None
     date_of_birth_month: int = None
@@ -172,6 +188,7 @@ class PetRegisterModel(BaseModel):
     petName:  str = None
     petMicrochipNo: str = None
     petBreed: str = None
+    petWeight: float = None
     petColor:  str = None
     petBirthMonth: int = None
     petBirthYear: int = None
@@ -246,3 +263,7 @@ class City(BaseModel):
     latitude: str
     longitude: str
     wikiDataId: str
+    
+class LoginSchema(BaseModel):
+    username: str
+    password: str

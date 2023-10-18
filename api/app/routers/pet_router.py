@@ -127,6 +127,7 @@ async def add_pet(
         petGender=petGender,
         petName=petName,
         petMicrochipNo=petMicrochipNo,
+        petWeight=0.0,
         petBreed=petBreed,
         petColor=petColor,
         petBirthMonth=petBirthMonth,
@@ -139,14 +140,53 @@ async def add_pet(
 # Update pet type by unique id
 @router.post('/update/{id}')
 async def update_pet_type(id: UUID, request: PetUpdate, db: Session = Depends(get_session)):
-    return await pet_repo.update_pet(db, id, request)
+    # return await pet_repo.update_pet(db, id, request)
+    return None
+
+# Update pet type by unique id
+@router.post('/update')
+async def update_pet_type(
+    guid: str = Form(...),
+    ownerId: str = Form(...),
+    petBehaviour: Optional[str] = Form(default=None),  # Add the new fields here
+    petDescription: Optional[str] = Form(default=None),
+    petWeight: str = Form(...),
+    petType: str = Form(...),
+    petGender: str = Form(...),
+    petName: str = Form(...),
+    petMicrochipNo: str = Form(...),
+    petBreed: str = Form(...),
+    petColor: str = Form(...),
+    petBirthMonth: str = Form(...),
+    petBirthYear: str = Form(...),
+    file: Optional[UploadFile] = File(default=None), 
+    db: Session = Depends(get_session)
+):
+    data = PetUpdate(
+        behavior= petBehaviour,  # Include the new fields here
+        description= petDescription,
+        weight= petWeight,
+        pet_type_id= petType,
+        gender= petGender,
+        name= petName,
+        microchip_id= petMicrochipNo,
+        breed= petBreed,
+        color= petColor,
+        date_of_birth_month= petBirthMonth,
+        date_of_birth_year= petBirthYear,
+        main_picture=file.filename if file else None
+    )
+    
+    response = await pet_repo.update_pet(guid, ownerId, data, file, db)
+    
+    return response
 
 # Generate QR for registered pets
 @router.get('/generateqr')
-def add_pet(db: Session = Depends(get_session)):
-    pets = pet_repo.generate_qr(db)
+async def add_pet(db: Session = Depends(get_session)):
+    pets = await pet_repo.generate_qr(db)
     qr_code_data = []
-    
+    os.makedirs('qrs', exist_ok=True)
     for pet_idx, pet in enumerate(pets):
         pet_id_str = str(pet_idx + 1).zfill(3)
         image_filename = f"qrcode-{pet_id_str}.png"
@@ -161,13 +201,12 @@ def add_pet(db: Session = Depends(get_session)):
         
         qr.add_data(f"https://secure-petz.info/{pet.unique_id}")
         qr.make(fit=True)
-        img = qr.make_image(fill='black', back_color='white')
+        img = qr.make_image(fill_color="#0D67B5", back_color='white')
         
         # Resizing the image to the desired size
         img = img.resize((1318, 1318))
         
         # Create the 'qrs' folder if it doesn't exist
-        os.makedirs('qrs', exist_ok=True)
         img.save(image_path)
 
         qr_code_data.append({
